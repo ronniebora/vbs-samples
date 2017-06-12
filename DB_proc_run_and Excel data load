@@ -1,0 +1,63 @@
+ Option Explicit
+'*****Start of Declaring Variables *****'
+    Dim sQuery, userid, pwd    Dim conn, strConn, cmd, rs    Dim param1, param2, param3, param4, param5    Dim scriptPath    Dim aspPath
+Dim objExl,wrk,xlSheet,objRange,SQL,FileName,Mon,Dy,Report_Date,Border,Weight,ReportTitle,Path,Path1,Path2,FileName1,range,objMessageDim iBUiBU = ""
+   userid = ""   pwd = ""
+runProc1()
+set objExl = Wscript.CreateObject("Excel.Application")objExl.visible = trueset wrk = objExl.Workbooks.open("<location and filename and format>")
+'*****End of Declaring Variables *****'
+On Error Resume Next  Dim iMessage, strusername, Strcomputername, compShell, iStatus   Set compShell = CreateObject("WScript.Shell")  strComputerName = compShell.ExpandEnvironmentStrings("%COMPUTERNAME%") struserName = compShell.ExpandEnvironmentStrings("%USERNAME%") 
+'*****Start of Setting up the Output Path and File Name*****''
+If Len(Month(Date)) = 1 Then  Mon = "0" & Month(Date) Else Mon = Month(Date)If Len(Day(Date)) = 1 Then Dy = "0" & Day(Date) Else Dy = Day(Date)Report_Date = Year(Date) & "_" & Mon & "_" & Dy
+ReportTitle = "<Report Title>"FileName = "<Template name plus new new date OR use any paramter> " & Report_Date
+Path = "<Save location>" & FileNamePath1 = "<Save location 2>"  & FileName
+'*****End of Setting up the Output Path and File Name*****'
+'*****Start of Exporting Data to Excel*****'
+wrk.sheets("<Excel tab name>").visible = Truewrk.sheets("<Excel tab name>").selectset xlSheet = wrk.sheets("<Excel tab name>")xlSheet.Cells.SelectobjExl.Selection.ClearContents
+SQL = "<SQL Query>"
+With xlSheet.QueryTables.Add("ODBC;DSN=;UID=;PWD=;SERVER=;",xlSheet.Range("A1"))       .CommandText = SQL .Refresh False .DeleteEnd With
+wrk.sheets("<Excel tab name>").select
+'*****Start of Exporting Data to Excel*****'
+'*****Start of Saving the File*****'
+objExl.DisplayAlerts = FALSEobjExl.ActiveWorkBook.saveas PathobjExl.ActiveWorkBook.saveas Path1objExl.Quitset objExl = nothingSet wrk = nothingSet xlSheet = nothing
+'*****End of Saving the File*****'
+'*** Send the email and update Job control Table *****
+Send_Email()
+JC_tbl()
+If Err.Number <> 0 Then   iStatus = Err.Description iMessage = "Automated Report:" & FileName & vbcrlf & _       "Computer Name:"  & strComputerName & vbcrlf & "User Name: " & struserName & vbcrlf & _                                                "Script: Main Proc : " & WScript.ScriptName & vbCrlf & "Error: " & Err.Number & _                                                vbCrlf & "Error (Hex): " & Hex(Err.Number) & vbCrlf & "Source: " &  Err.Source & vbCrlf & "Description: " &  Err.Description      Call Errormessage(iMessage) iStatus = Err.Description ErrJC(iStatus)Wscript.quit 'Else: Call Errormessage(FileName & " Completed Successfully at " & Now() & vbNewLine & vbNewLine & "Thanks,")   End if 
+'*****Start of Formatting Section*****'
+Sub Format1 ()
+ set objRange = objExl.ActiveCell.CurrentRegion objRange.Font.Name = "Calibri" objRange.Font.Size = 8
+       xlSheet.Columns(3).NumberFormat = "mm/dd/yyyy"       xlSheet.Columns(5).NumberFormat = "mm/dd/yyyy"       xlSheet.Columns(7).NumberFormat = "mm/dd/yyyy"        'xlSheet.Columns(5).NumberFormat = "$#,##0.00_);[Red]($#,##0.00)"       'xlSheet.Columns(2).NumberFormat = "0.00"       'xlSheet.Columns(3).NumberFormat = "0.00"       'xlSheet.Columns(4).NumberFormat = "0.00"
+        set objRange = objExl.Cells objRange.Columns.AutoFit() objRange.Rows("1:1").HorizontalAlignment =  -4108 objRange.Columns("a:m").HorizontalAlignment =  -4108
+End Sub
+
+'*****End of Formatting Section*****'Sub Send_Email()
+Set objMessage = CreateObject("CDO.Message") objMessage.Subject = ReportTitle objMessage.From = """<your prefered name>"" <prefered email id>"objMessage.Cc = "<comma separated email ids>"objMessage.To = "<Comma Separated email values>"objMessage.TextBody = "Hello," & VbCrLF & VbCrLF & _"mail body  as of : "& Report_Date & VbCrLF & VbCrLF & _"mail body " & FileName & " as of : " & Report_Date & VbCrLF & VbCrLF & _"NOTE: This is an automated mail. " & VbCrLF & VbCrLF & _"The file is saved in following location " & VbCrLF & VbCrLF & _ Path & VbCrLF & VbCrLF & _ Path1 & VbCrLF & VbCrLF & _"Regards," & VbCrLF & _"mail body"objMessage.AddAttachment path & ".xlsb"objMessage.Configuration.Fields.Item("http://schemas.microsoft.com/cdo/configuration/sendusing") = 2objMessage.Configuration.Fields.Item("http://schemas.microsoft.com/cdo/configuration/smtpserver") = "mailrelay.compname/server_name" objMessage.Configuration.Fields.Item("http://schemas.microsoft.com/cdo/configuration/smtpserverport") = 25objMessage.Configuration.Fields.UpdateobjMessage.Send
+End Sub
+'***************Procedure execution function ******************************sub runProc1
+On Error Resume Next     strConn = "DSN=;UID=" & userid & ";PWD=" & pwd & ";SERVER=;"    Set conn = CreateObject("ADODB.Connection")    conn.Open strConn
+    Set Cmd =  CreateObject("ADODB.Command")
+    With Cmd      .ActiveConnection = conn 'You can also just specify a connection string here      .CommandType = 1 ' 1 is text 4 is stored procedure 'Requires the adovbs.inc file or typelib meta tag      .CommandText = "{call <database procedure>()}"       .COmmandTimeout = 99999    End With
+    cmd.Execute
+  set cmd = nothing  set conn = Nothing
+If Err.Number <> 0 TheniStatus = Err.Description   iMessage = "Automated Report:" & FileName & vbcrlf & _       "Computer Name:"  & strComputerName & vbcrlf & "User Name: " & struserName & vbcrlf & _                                                "Script: Main Proc : " & WScript.ScriptName & vbCrlf & "Error: " & Err.Number & _                                                vbCrlf & "Error (Hex): " & Hex(Err.Number) & vbCrlf & "Source: " &  Err.Source & vbCrlf & "Description: " &  Err.Description      Call Errormessage(iMessage) ErrJC(iStatus)Wscript.quit 'Else: Call Errormessage(FileName & " Completed Successfully at " & Now() & vbNewLine & vbNewLine & "Thanks,")    End if 
+End sub
+'******************* run the Job control Write Back ***************
+sub JC_tbl
+On Error Resume Next  
+    strConn = "DSN=;UID=" & userid & ";PWD=" & pwd & ";SERVER=;"    Set conn = CreateObject("ADODB.Connection")    conn.Open strConn        Set Cmd =  CreateObject("ADODB.Command")
+    With Cmd .ActiveConnection = conn 'You can also just specify a connection string here .CommandType = 1 ' 1 is text 4 is stored procedure 'Requires the adovbs.inc file or typelib meta tag        .CommandText = "<insert into job log tables> VALUES (' " + WScript.ScriptName + " ', ' " + FileName + " ' , SYSDATE, ' " + iBU + " ', 'COMPLETED');"  .COmmandTimeout = 99999    End With
+    cmd.Execute
+  set cmd = nothing  set conn = Nothing
+If Err.Number <> 0 TheniMessage = "Automated Report:" & FileName & vbcrlf & _       "Computer Name:"  & strComputerName & vbcrlf & "User Name: " & struserName & vbcrlf & _                                                "Script: Main Proc : " & WScript.ScriptName & vbCrlf & "Error: " & Err.Number & _                                                vbCrlf & "Error (Hex): " & Hex(Err.Number) & vbCrlf & "Source: " &  Err.Source & vbCrlf & "Description: " &  Err.Description      Call Errormessage(iMessage) iStatus = Err.Description ErrJC(iStatus)Wscript.quit 'Else: Call Errormessage(FileName & " Completed Successfully at " & Now() & vbNewLine & vbNewLine & "Thanks,")   End if 
+end Sub
+ ' ****************** Error routine **********************
+Sub Errormessage(iMessage)       Dim oMessage     Set oMessage = CreateObject("CDO.Message")     With omessage    .Configuration.Fields.Item("http://schemas.microsoft.com/cdo/configuration/sendusing") = 2    .Configuration.Fields.Item("http://schemas.microsoft.com/cdo/configuration/smtpserver") = "mailrelay.server_name"   .Configuration.Fields.Item("http://schemas.microsoft.com/cdo/configuration/smtpserverport") = 25    .Configuration.Fields.Update   .Subject = ReportTitle   .From = """prefered name "" <customized email>"   .To = ""  .TextBody = iMessage & VbCrLF & VbCrLF & _ "Note: This is an automated mail sent Delivered from Automated Services" & VbCrLF & VbCrLF & _  .Send End With     Err.Clear  Exit Sub  
+Set oMessage = NOthing  Set iMessage = NOthing    End Sub 
+Sub ErrJC(iStatus)
+    strConn = "DSN=;UID=" & userid & ";PWD=" & pwd & ";SERVER=;"    Set conn = CreateObject("ADODB.Connection")    conn.Open strConn        Set Cmd =  CreateObject("ADODB.Command")
+    With Cmd .ActiveConnection = conn 'You can also just specify a connection string here .CommandType = 1 ' 1 is text 4 is stored procedure 'Requires the adovbs.inc file or typelib meta tag        .CommandText = "<INSERT INTO job tracker table> VALUES (' " + WScript.ScriptName + " ', ' " + FileName + " ', SYSDATE, ' " + iBU + " ', ' " + iStatus + " ');"  .COmmandTimeout = 99999    End With
+    cmd.Execute
+  set cmd = nothing  set conn = Nothing
+End Sub

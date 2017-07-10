@@ -1,0 +1,42 @@
+Sub Macro1()
+'UnHide summary page extra columns
+    Columns("Q:Q").Select
+    Range(Selection, Selection.End(xlToRight)).Select
+    Selection.EntireColumn.Hidden = FALSE
+
+
+'Select the summary sheet and refresh the pivot tables
+    ActiveSheet.PivotTables("PivotTable1").PivotCache.Refresh
+    ActiveSheet.PivotTables("PivotTable2").PivotCache.Refresh  
+    ActiveSheet.PivotTables("PivotTable3").PivotCache.Refresh
+    ActiveSheet.PivotTables("PivotTable4").PivotCache.Refresh
+    ActiveSheet.PivotTables("PivotTable5").PivotCache.Refresh
+  
+    
+    
+'Hide summary page extra columns
+    Columns("Q:Q").Select
+    Range(Selection, Selection.End(xlToRight)).Select
+    Selection.EntireColumn.Hidden = True
+
+'Hide the history sheet
+
+    Sheets("hist").Select
+	ActiveSheet.PivotTables("PivotTable6").PivotCache.Refresh    
+	With ActiveSheet.PivotTables("PivotTable6").PivotFields("Month End")
+        .PivotItems("(blank)").Visible = False
+	End With
+	
+
+'    With ActiveSheet.PivotTables("PivotTable3").PivotFields("DATA_DATE")
+'        .PivotItems("(blank)").Visible = False
+'    End With
+    
+ '   With ActiveSheet.PivotTables("PivotTable4").PivotFields("DATA_DATE")
+ '       .PivotItems("(blank)").Visible = False
+ '   End With
+
+
+
+End Sub
+
